@@ -46,7 +46,7 @@ ensure_bucket_exists() {
 }
 
 pg_dump_database() {
-    pg_dump  --no-owner --no-privileges --clean --if-exists --quote-all-identifiers "$DATABASE_URL"
+    pg_dump --format=custom --no-owner --no-privileges --clean --if-exists --quote-all-identifiers "$DATABASE_URL"
 }
 
 get_database_size() {
@@ -60,17 +60,25 @@ get_database_size() {
 
 upload_to_bucket() {
     local expected_size="$1"
-    local s3_path="s3://$S3_BUCKET_NAME/$(date +%Y/%m/backup-%Y-%m-%d-%H-%M-%S.sql.gz)"
+    local s3_path="s3://$S3_BUCKET_NAME/$(date +%Y/%m/backup-%Y-%m-%d-%H-%M-%S.dump)"
+    log "Uploading to $s3_path..."
     s3 cp - "$s3_path" --expected-size "$expected_size"
+    log "Upload complete"
 }
 
 main() {
+    log "Starting backup"
     ensure_bucket_exists
-    echo "Taking backup and uploading it to S3..."
+    
+    log "Getting database size..."
     local db_size
     db_size=$(get_database_size)
-    pg_dump_database | gzip | upload_to_bucket "$db_size"
-    echo "Done."
+    log "Database size: $(format_bytes "$db_size")"
+    
+    log "Starting pg_dump and upload..."
+    pg_dump_database | upload_to_bucket "$db_size"
+    
+    log "Backup complete"
 }
 
 main
