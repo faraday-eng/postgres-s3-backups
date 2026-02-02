@@ -13,7 +13,7 @@ s3api() {
 }
 
 bucket_exists() {
-    s3 ls "$S3_BUCKET_NAME" &> /dev/null
+    s3api head-bucket 2>/dev/null
 }
 
 create_bucket() {
@@ -49,16 +49,27 @@ pg_dump_database() {
     pg_dump  --no-owner --no-privileges --clean --if-exists --quote-all-identifiers "$DATABASE_URL"
 }
 
+get_database_size() {
+    local size
+    size=$(psql "$DATABASE_URL" -t -A -c "SELECT pg_database_size(current_database())") || {
+        echo "Failed to get database size" >&2
+        exit 1
+    }
+    echo "$size"
+}
+
 upload_to_bucket() {
-    # if the zipped backup file is larger than 50 GB add the --expected-size option
-    # see https://docs.aws.amazon.com/cli/latest/reference/s3/cp.html
-    s3 cp - "s3://$S3_BUCKET_NAME/$(date +%Y/%m/%d/backup-%H-%M-%S.sql.gz)"
+    local expected_size="$1"
+    local s3_path="s3://$S3_BUCKET_NAME/$(date +%Y/%m/backup-%Y-%m-%d-%H-%M-%S.sql.gz)"
+    s3 cp - "$s3_path" --expected-size "$expected_size"
 }
 
 main() {
     ensure_bucket_exists
     echo "Taking backup and uploading it to S3..."
-    pg_dump_database | gzip | upload_to_bucket
+    local db_size
+    db_size=$(get_database_size)
+    pg_dump_database | gzip | upload_to_bucket "$db_size"
     echo "Done."
 }
 
