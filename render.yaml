@@ -29,8 +29,4 @@ services:
       # For example, 16
       - key: POSTGRES_VERSION
         sync: false
-      # Alpine base-OS version, see README
-      # For example, 3.20
-      - key: ALPINE_VERSION
-        sync: false
 

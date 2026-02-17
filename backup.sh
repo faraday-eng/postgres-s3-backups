@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -o errexit -o nounset -o pipefail
 
@@ -10,11 +10,11 @@ log() {
 
 format_bytes() {
     local bytes=$1
-    if [ "$bytes" -ge 1073741824 ]; then
+    if (( bytes >= 1073741824 )); then
         echo "$(( bytes / 1073741824 )) GB"
-    elif [ "$bytes" -ge 1048576 ]; then
+    elif (( bytes >= 1048576 )); then
         echo "$(( bytes / 1048576 )) MB"
-    elif [ "$bytes" -ge 1024 ]; then
+    elif (( bytes >= 1024 )); then
         echo "$(( bytes / 1024 )) KB"
     else
         echo "$bytes bytes"
@@ -26,9 +26,7 @@ s3() {
 }
 
 s3api() {
-    local cmd="$1"
-    shift
-    aws s3api "$cmd" --region "$AWS_REGION" --bucket "$S3_BUCKET_NAME" "$@"
+    aws s3api "$1" --region "$AWS_REGION" --bucket "$S3_BUCKET_NAME" "${@:2}"
 }
 
 bucket_exists() {
